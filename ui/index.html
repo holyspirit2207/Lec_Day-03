@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VinAI ReAct Agent — Travel Assistant</title>
+  <meta name="description" content="AI Travel Assistant powered by ReAct Agent — Vingroup AI Training Program" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-0: #0a0d14;
+      --bg-1: #111827;
+      --bg-2: #1a2235;
+      --bg-3: #212d42;
+      --accent: #6366f1;
+      --accent-2: #8b5cf6;
+      --accent-glow: rgba(99,102,241,0.25);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --text-1: #f1f5f9;
+      --text-2: #94a3b8;
+      --text-3: #64748b;
+      --border: rgba(99,102,241,0.18);
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-0);
+      color: var(--text-1);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: rgba(17,24,39,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 10;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .header-text h1 { font-size: 16px; font-weight: 700; }
+    .header-text p  { font-size: 12px; color: var(--text-3); }
+
+    /* mode toggle */
+    .mode-toggle {
+      margin-left: auto;
+      display: flex;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .mode-btn {
+      border: none; cursor: pointer;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-2);
+      background: transparent;
+      transition: all .2s;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Chat area ── */
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 5px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 10px; }
+
+    /* welcome */
+    .welcome {
+      text-align: center;
+      padding: 40px 20px;
+      animation: fadeUp .5s ease;
+    }
+    .welcome .icon { font-size: 52px; margin-bottom: 12px; }
+    .welcome h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .welcome p  { color: var(--text-2); font-size: 14px; line-height: 1.6; }
+    .suggestions {
+      display: flex; flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .suggestion-chip {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      padding: 8px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .suggestion-chip:hover {
+      background: var(--bg-3);
+      border-color: var(--accent);
+      color: var(--text-1);
+      transform: translateY(-1px);
+    }
+
+    /* bubbles */
+    .bubble-row {
+      display: flex;
+      gap: 10px;
+      animation: fadeUp .3s ease;
+    }
+    .bubble-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .avatar.bot {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .avatar.user-av { background: var(--bg-3); }
+
+    .bubble {
+      max-width: 72%;
+      padding: 13px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .bubble.bot {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+    .bubble.user {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+
+    /* typing */
+    .typing-dots {
+      display: flex; gap: 4px; padding: 6px 0;
+    }
+    .typing-dots span {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: bounce 1.1s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: .15s; }
+    .typing-dots span:nth-child(3) { animation-delay: .3s; }
+
+    /* ── Trace sidebar ── */
+    .trace-panel {
+      width: 320px;
+      background: var(--bg-1);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width .3s ease;
+    }
+    .trace-panel.hidden { width: 0; }
+    .trace-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .trace-badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 100px;
+      padding: 1px 7px;
+      font-size: 10px;
+    }
+    #trace-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+    }
+    #trace-content::-webkit-scrollbar { width: 4px; }
+    #trace-content::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 10px; }
+
+    .trace-empty {
+      color: var(--text-3);
+      text-align: center;
+      padding: 40px 16px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .trace-step {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      animation: fadeUp .3s ease;
+    }
+    .trace-step-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .step-num {
+      background: var(--accent);
+      color: #fff;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .step-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .trace-field { margin-bottom: 6px; }
+    .trace-field-label {
+      font-size: 10px;
+      color: var(--text-3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 3px;
+    }
+    .trace-field-value {
+      background: var(--bg-0);
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--text-2);
+      font-size: 11px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .trace-field-value.green { color: var(--green); }
+    .trace-field-value.amber { color: var(--amber); }
+
+    /* ── Input ── */
+    .input-bar {
+      padding: 14px 20px;
+      background: var(--bg-1);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    #msg-input {
+      flex: 1;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-1);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      resize: none;
+      max-height: 120px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #msg-input::placeholder { color: var(--text-3); }
+    #msg-input:focus { border-color: var(--accent); }
+
+    #send-btn {
+      width: 44px; height: 44px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid; place-items: center;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 0 14px var(--accent-glow);
+      flex-shrink: 0;
+    }
+    #send-btn:hover { transform: scale(1.06); box-shadow: 0 0 22px var(--accent-glow); }
+    #send-btn:active { transform: scale(.97); }
+    #send-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* status bar */
+    .status-bar {
+      padding: 6px 20px;
+      background: var(--bg-1);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    /* toggle trace button */
+    .trace-toggle {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-3);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color .2s;
+    }
+    .trace-toggle:hover { color: var(--accent); }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40%           { transform: translateY(-6px); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">✈️</div>
+  <div class="header-text">
+    <h1>VinAI Travel Assistant</h1>
+    <p>Powered by ReAct Agent — Vingroup AI Training</p>
+  </div>
+  <div class="mode-toggle">
+    <button class="mode-btn" id="btn-baseline" onclick="setMode('baseline')">Baseline</button>
+    <button class="mode-btn active" id="btn-react" onclick="setMode('react')">ReAct Agent</button>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Chat Panel -->
+  <div class="chat-panel">
+    <div id="messages">
+      <div class="welcome" id="welcome">
+        <div class="icon">🤖</div>
+        <h2>Xin chào! Tôi là VinAI Assistant</h2>
+        <p>Hỏi tôi về chuyến bay, thời tiết, hay chính sách vé.<br/>Chọn chế độ <strong>ReAct Agent</strong> để xem quá trình suy luận bên phải.</p>
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="sendSuggestion(this)">✈️ Tìm vé HAN → SGN dưới 2 triệu</div>
+          <div class="suggestion-chip" onclick="sendSuggestion(this)">🌤️ Thời tiết Đà Nẵng DAD hôm nay?</div>
+          <div class="suggestion-chip" onclick="sendSuggestion(this)">🎫 Chính sách đổi trả vé Vinpearl?</div>
+          <div class="suggestion-chip" onclick="sendSuggestion(this)">✈️ Chuyến bay HAN → SGN + thời tiết SGN nên mặc gì?</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-bar">
+      <textarea id="msg-input" rows="1" placeholder="Nhập câu hỏi của bạn..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Gửi">➤</button>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar">
+      <span class="status-dot"></span>
+      <span id="status-text">Sẵn sàng</span>
+      <button class="trace-toggle" onclick="toggleTrace()" id="trace-toggle-btn">📋 Ẩn/hiện Trace Log</button>
+    </div>
+  </div>
+
+  <!-- Trace Panel -->
+  <div class="trace-panel" id="trace-panel">
+    <div class="trace-header">
+      📋 ReAct Trace Log
+      <span class="trace-badge" id="trace-badge">0</span>
+    </div>
+    <div id="trace-content">
+      <div class="trace-empty">Chưa có trace.<br/>Gửi câu hỏi ở chế độ <strong>ReAct Agent</strong> để xem quá trình suy luận.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let currentMode = 'react';
+  let isLoading = false;
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-baseline').classList.toggle('active', mode === 'baseline');
+    document.getElementById('btn-react').classList.toggle('active', mode === 'react');
+    document.getElementById('trace-panel').classList.toggle('hidden', mode === 'baseline');
+    document.getElementById('status-text').textContent = mode === 'react' ? 'ReAct Agent — Sẵn sàng' : 'Baseline — Sẵn sàng';
+  }
+
+  function toggleTrace() {
+    const p = document.getElementById('trace-panel');
+    p.classList.toggle('hidden');
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function sendSuggestion(el) {
+    const text = el.textContent.replace(/^[^\s]+\s/, '').trim();
+    document.getElementById('msg-input').value = text;
+    sendMessage();
+  }
+
+  function appendBubble(text, role) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    const row = document.createElement('div');
+    row.className = `bubble-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role === 'user' ? 'user-av' : 'bot'}`;
+    avatar.textContent = role === 'user' ? '🧑' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role === 'user' ? 'user' : 'bot'}`;
+    bubble.style.whiteSpace = 'pre-wrap';
+    bubble.textContent = text;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+
+    const msgs = document.getElementById('messages');
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+    return bubble;
+  }
+
+  function showTyping() {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    const row = document.createElement('div');
+    row.className = 'bubble-row';
+    row.id = 'typing-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar bot';
+    avatar.textContent = '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble bot';
+    bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    const msgs = document.getElementById('messages');
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('typing-row');
+    if (t) t.remove();
+  }
+
+  function renderTrace(trace, iterations) {
+    const container = document.getElementById('trace-content');
+    const badge = document.getElementById('trace-badge');
+
+    if (!trace || trace.length === 0) {
+      container.innerHTML = '<div class="trace-empty">Baseline mode không có trace.</div>';
+      badge.textContent = '0';
+      return;
+    }
+
+    badge.textContent = trace.length;
+    container.innerHTML = '';
+
+    trace.forEach((step, i) => {
+      const div = document.createElement('div');
+      div.className = 'trace-step';
+
+      let html = `
+        <div class="trace-step-header">
+          <div class="step-num">${step.iteration || i + 1}</div>
+          <div class="step-label">Iteration ${step.iteration || i + 1}</div>
+        </div>`;
+
+      if (step.thought) {
+        html += `<div class="trace-field">
+          <div class="trace-field-label">💭 Thought</div>
+          <div class="trace-field-value">${step.thought}</div>
+        </div>`;
+      }
+      if (step.action) {
+        html += `<div class="trace-field">
+          <div class="trace-field-label">⚡ Action</div>
+          <div class="trace-field-value amber">${step.action.name}(${JSON.stringify(step.action.args)})</div>
+        </div>`;
+      }
+      if (step.observation !== undefined) {
+        const obs = typeof step.observation === 'string'
+          ? step.observation
+          : JSON.stringify(step.observation, null, 2);
+        html += `<div class="trace-field">
+          <div class="trace-field-label">👁️ Observation</div>
+          <div class="trace-field-value" style="max-height:80px;overflow-y:auto;white-space:pre-wrap;font-size:10px">${obs}</div>
+        </div>`;
+      }
+      if (step.final_answer) {
+        html += `<div class="trace-field">
+          <div class="trace-field-label">✅ Final Answer</div>
+          <div class="trace-field-value green" style="white-space:pre-wrap">${step.final_answer}</div>
+        </div>`;
+      }
+
+      div.innerHTML = html;
+      container.appendChild(div);
+    });
+
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function sendMessage() {
+    if (isLoading) return;
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    isLoading = true;
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+    document.getElementById('status-text').textContent = '⏳ Đang xử lý...';
+
+    appendBubble(text, 'user');
+    showTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, mode: currentMode })
+      });
+
+      const data = await res.json();
+      hideTyping();
+
+      const modeLabel = data.mode === 'react' ? '🤖 ReAct' : '💬 Baseline';
+      const iterInfo = data.iterations > 0 ? ` · ${data.iterations} bước` : '';
+      appendBubble(data.answer, 'bot');
+      document.getElementById('status-text').textContent = `${modeLabel}${iterInfo} — Hoàn thành`;
+
+      if (currentMode === 'react') {
+        renderTrace(data.trace, data.iterations);
+      }
+
+    } catch (err) {
+      hideTyping();
+      appendBubble('❌ Lỗi kết nối tới server. Hãy đảm bảo backend đang chạy.', 'bot');
+      document.getElementById('status-text').textContent = 'Lỗi kết nối';
+    }
+
+    isLoading = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+
+  // Init
+  setMode('react');
+</script>
+</body>
+</html>

@@ -31,6 +31,7 @@ class ChatbotBaseline:
     def query(self, user_input: str) -> Dict[str, Any]:
         if self.api_key:
             try:
+                # pyrefly: ignore [missing-import]
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 model = genai.GenerativeModel('gemini-1.5-flash')
